@@ -1,28 +1,8 @@
 import React from 'react';
-import MovieCard from './MovieCard';
+import Modal from './Modal';
 import MovieList from './MovieList';
-import {getMoviesByName} from './utils'
-class ListItem extends React.Component {
-
-  constructor(props) {
-    super(props);
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    if (this.props.value === nextProps.value) {
-      return false
-    }
-    return true
-  }
-
-  componentDidUpdate() {
-    console.log('component updated')
-  }
-
-  render() {
-    return <li>{this.props.value}</li>
-  }
-}
+import MovieDetails from './MovieDetails';
+import {getMovieDetailsById, getMoviesByName} from './utils'
 
 class App extends React.Component {
   constructor(props) {
@@ -33,9 +13,13 @@ class App extends React.Component {
       search: 'batman',
       isLoading: false,
       error: null,
-      count: 0,
-      numbers: [1, 2, 3, 4]
+      showModal: false,
+      selectedMovieId: null,
+      selectedMovie: null,
     };
+
+    this.updateShowModalState = this.updateShowModalState.bind(this);
+    this.onMovieClicked = this.onMovieClicked.bind(this);
   }
 
   async componentDidMount() {
@@ -63,11 +47,56 @@ class App extends React.Component {
     )
   }
 
+  async componentDidUpdate(prevProps, prevState) {
+    if (prevState.selectedMovieId !== this.state.selectedMovieId) {
+      try {
+        const newMovie = await getMovieDetailsById(this.state.selectedMovieId);
+        this.setState({
+          selectedMovie: newMovie,
+          showModal: true
+        });
+      } catch(error) {
+        this.setState({
+          error: error,
+          showModal: false,
+        });
+      }
+    }
+  }
+
+  updateShowModalState(shouldShow) {
+    this.setState({
+      showModal: shouldShow
+    });
+  }
+
+  onMovieClicked(id) {
+    this.setState({
+      selectedMovieId: id,
+    });
+  }
+
   render() {
+    const { selectedMovie } = this.state;
+
     return (
       <div>
         {this.state.isLoading && <p>Loading...</p>}
-        <MovieList movies={this.state.movies} />
+        <MovieList movies={this.state.movies} onMovieCardClicked={this.onMovieClicked} />
+        {this.state.showModal &&
+          <Modal show={this.state.showModal} onClose={() => this.updateShowModalState(false)}>
+            <MovieDetails 
+               posterUrl={selectedMovie.Poster}
+               title={selectedMovie.Title}
+               rating={selectedMovie.Ratings[0].Value}
+               rated={selectedMovie.Rated}
+               runtime={selectedMovie.Runtime}
+               genre={selectedMovie.Genre}
+               plot={selectedMovie.Plot}
+               actors={selectedMovie.Actors}
+            />
+          </Modal>
+        }
       </div>
     )
   }
