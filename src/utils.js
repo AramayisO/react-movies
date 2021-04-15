@@ -1,5 +1,5 @@
 const OMDB_API_BASE_URL = 'http://www.omdbapi.com/';
-const OMDB_API_KEY = '168cc8dc'
+const OMDB_API_KEY = process.env.REACT_APP_OMDB_API_KEY;
 
 export const getMoviesByName = async (search) => {
   const url = `${OMDB_API_BASE_URL}?apikey=${OMDB_API_KEY}&s=${search}`;
