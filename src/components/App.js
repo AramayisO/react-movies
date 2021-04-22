@@ -2,7 +2,9 @@ import React from 'react';
 import Modal from './Modal';
 import MovieList from './MovieList';
 import MovieDetails from './MovieDetails';
-import {getMovieDetailsById, getMoviesByName} from './utils'
+import {getMovieDetailsById, getMoviesByName} from '../utils/utils'
+import SearchBar from './SearchBar';
+import Paginator from './Paginator';
 
 class App extends React.Component {
   constructor(props) {
@@ -11,15 +13,18 @@ class App extends React.Component {
     this.state = {
       movies: [],
       search: 'batman',
+      type: '',
       isLoading: false,
       error: null,
       showModal: false,
       selectedMovieId: null,
       selectedMovie: null,
+      page: 1,
     };
 
     this.updateShowModalState = this.updateShowModalState.bind(this);
     this.onMovieClicked = this.onMovieClicked.bind(this);
+    this.onSearchFormSubmit = this.onSearchFormSubmit.bind(this);
   }
 
   async componentDidMount() {
@@ -62,6 +67,21 @@ class App extends React.Component {
         });
       }
     }
+
+    if (prevState.search !== this.state.search || prevState.type !== this.state.type || prevState.page !== this.state.page) {
+      try {
+        const newMovies = await getMoviesByName(this.state.search, this.state.type, this.state.page);
+        this.setState({
+          movies: newMovies,
+          error: null,
+        });
+      } catch(error) {
+        this.setState({
+          error: error,
+          movies: [],
+        });
+      }
+    }
   }
 
   updateShowModalState(shouldShow) {
@@ -76,13 +96,36 @@ class App extends React.Component {
     });
   }
 
+  onSearchFormSubmit(search, type) {
+    this.setState({
+      search,
+      type
+    });
+
+    console.log(search, type)
+  }
+
+  updatePage(ammount) {
+    this.setState((prevState) => {
+      const newPage = prevState.page + ammount;
+
+      if (newPage > 0 && newPage < 101) {
+        return { page: newPage };
+      }
+
+      return { page: prevState.page };
+    });
+  }
+
   render() {
     const { selectedMovie } = this.state;
 
     return (
       <div>
+        <SearchBar onSubmit={this.onSearchFormSubmit} />
         {this.state.isLoading && <p>Loading...</p>}
         <MovieList movies={this.state.movies} onMovieCardClicked={this.onMovieClicked} />
+        <Paginator currentPage={this.state.page} getNextPage={() => this.updatePage(1)} getPrevPage={() => this.updatePage(-1)} />
         {this.state.showModal &&
           <Modal show={this.state.showModal} onClose={() => this.updateShowModalState(false)}>
             <MovieDetails 
